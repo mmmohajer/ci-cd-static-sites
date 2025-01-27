@@ -3,6 +3,8 @@
 **All rights reserved.**  
 This repository and its contents are private and intended solely for users authorized by ISWAD Inc. Unauthorized access, use, modification, or distribution is strictly prohibited.
 
+For more information, visit the repository at: [https://github.com/mmmohajer/ci-cd-static-sites](https://github.com/mmmohajer/ci-cd-static-sites)
+
 ## Table of Contents
 
 - [Purpose](#purpose)
