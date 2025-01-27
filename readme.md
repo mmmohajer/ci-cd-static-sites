@@ -3,6 +3,26 @@
 **All rights reserved.**  
 This repository and its contents are private and intended solely for users authorized by ISWAD Inc. Unauthorized access, use, modification, or distribution is strictly prohibited.
 
+## Table of Contents
+
+- [Purpose](#purpose)
+- [How to Use This Repository and Study](#how-to-use-this-repository-and-study)
+- [Who Is This For?](#who-is-this-for)
+- [What You'll Learn](#what-youll-learn)
+- [Prerequisites](#prerequisites)
+- [Step 01: Preparing the Development Configuration](#step-01-preparing-the-development-configuration)
+  - [Concepts to Learn](#concepts-to-learn)
+  - [Practical Steps](#practical-steps)
+    - [Create the Folder Structure](#1-create-the-folder-structure)
+    - [Write the Nginx Configuration](#2-write-the-nginx-configuration)
+    - [Write the Docker Compose File](#3-write-the-docker-compose-file)
+    - [Folder Structure](#4-folder-structure)
+    - [Run the App](#5-run-the-app)
+    - [Verify Everything is Working](#6-verify-everything-is-working)
+    - [Test Your Setup](#6-test-your-setup)
+
+---
+
 ## **Purpose**
 
 This project is a step-by-step tutorial designed to simulate how CI/CD pipelines are built and scaled for real-world applications. Starting from the basics, you'll learn how to set up a robust CI/CD pipeline for static websites using Docker, Nginx, and Shell scripts. By following each step, you'll understand how to scale from a simple setup to a fully functional CI/CD pipeline ready for production.
@@ -134,7 +154,7 @@ Before you begin, ensure you have the following installed:
 
 ---
 
-## **Step 1: Preparing the Development Configuration**
+## **Step 01: Preparing the Development Configuration**
 
 ### **Goal of This Step**
 
