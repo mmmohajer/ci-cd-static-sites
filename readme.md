@@ -890,8 +890,9 @@ This confirms that your server can securely connect to GitHub via SSH.
    - Add the following line:
      ```plaintext
      init-letsencrypt.sh
+     nginx/certbot
      ```
-   - This ensures that the sensitive script file is not pushed to the GitHub repository.
+   - This ensures that the sensitive files/folders are not pushed to the GitHub repository.
 
 2. **Push Your Changes to GitHub**:
 
