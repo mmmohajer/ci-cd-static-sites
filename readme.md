@@ -45,6 +45,16 @@ For more information, visit the repository at: [https://github.com/mmmohajer/ci-
     - [Deploy the App and Create SSL](#7-deploy-the-app-and-create-ssl)
     - [Verify SSL Creation](#8-verify-ssl-creation)
     - [Folder and File Structure](#9-folder-and-file-structure)
+- [Step 04: Running Application on The Server](#step-04-running-application-on-the-server)
+  - [Goal of This Step](#goal-of-this-step-1)
+  - [Steps to Configure the Production Environment](#steps-to-configure-the-production-environment-1)
+    - [Create the Nginx Configuration for Production](#1-create-the-nginx-configuration-for-production)
+    - [Create the Dockerfile for Production](#2-create-the-dockerfile-for-production)
+    - [Create the Docker Compose File for Production](#3-create-the-docker-compose-file-for-production)
+    - [Push the Changes to GitHub](#4-push-the-changes-to-github)
+    - [Deploy the App on the Server](#5-deploy-the-app-on-the-server)
+    - [Verify Your App](#6-verify-your-app)
+    - [Folder and File Structure](#7-folder-and-file-structure-1)
 
 ---
 
@@ -996,7 +1006,7 @@ At the end of this step, your project should have the following folder and file 
 ├── docker-compose-dev.yml          # Docker Compose file for development setup
 ```
 
-# **Step 04: Setting Up the Production Environment**
+# **Step 04: Running Application on The Server**
 
 ## **Goal of This Step**
 
@@ -1187,11 +1197,27 @@ server {
 2. Add the following content to run_app.sh:
 
 ```bash
-git pull origin master;
+# Pull the latest changes from the GitHub repository
+git pull origin master
+
+# Remove all running and stopped containers
 docker container rm -f $(docker container ls -a -q)
+
+# Remove all unused Docker images
 docker image rm -f $(docker image ls -a -q)
+
+# Stop and remove the current Docker Compose stack for SSL creation (if running)
 docker-compose -f docker-compose-create-ssl.yml down
+
+# Stop and remove the current Docker Compose stack for production (if running)
 docker-compose -f docker-compose-prod-ssl.yml down
+
+# Build and start the production Docker Compose stack
+# Removes unused Docker volumes.
+# Removes all unused build cache data.
+# Removes all dangling and unused Docker images.
+# Removes all stopped containers.
+# Removes all unused Docker networks.
 docker-compose -f docker-compose-prod-ssl.yml up --build -d && docker volume prune -f && docker builder prune -a -f && docker image prune -a -f && docker container prune -f && docker network prune -f
 ```
 
