@@ -1,5 +1,8 @@
 # Modern CI/CD for Static Websites: Automating Deployment with Docker, Nginx, and Shell Scripts
 
+**All rights reserved.**  
+This repository and its contents are private and intended solely for users authorized by ISWAD Inc. Unauthorized access, use, modification, or distribution is strictly prohibited.
+
 ## **Purpose**
 
 This project is a step-by-step tutorial designed to simulate how CI/CD pipelines are built and scaled for real-world applications. Starting from the basics, you'll learn how to set up a robust CI/CD pipeline for static websites using Docker, Nginx, and Shell scripts. By following each step, you'll understand how to scale from a simple setup to a fully functional CI/CD pipeline ready for production.
