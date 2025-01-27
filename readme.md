@@ -950,7 +950,6 @@ This confirms that your server can securely connect to GitHub via SSH.
      apt install -y curl
      curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
      chmod +x /usr/local/bin/docker-compose
-     docker-compose --version
      ```
 
    - Verify that Docker and Docker Compose are installed correctly:
@@ -968,10 +967,7 @@ This confirms that your server can securely connect to GitHub via SSH.
 
 ### **8. Verify SSL Creation**
 
-Once the script completes successfully, verify that your SSL certificate is active and your domain is reachable:
-
-- Visit `https://APP_URL` and `https://www.APP_URL` (replace `APP_URL` with your domain name).
-- Both URLs should be accessible, and your browser should indicate that the connection is secure (via HTTPS).
+Once the script completes successfully, you will see an appropriate success message in the terminal, and you are ready to move to the next step.
 
 ### **8. Folder and File Structure**
 
