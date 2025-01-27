@@ -22,6 +22,16 @@ For more information, visit the repository at: [https://github.com/mmmohajer/ci-
     - [Run the App](#5-run-the-app)
     - [Verify Everything is Working](#6-verify-everything-is-working)
     - [Test Your Setup](#6-test-your-setup)
+- [Step 02: Serving Static Files and Improving Performance with Gzip](#step-02-serving-static-files-and-improving-performance-with-gzip)
+  - [Concepts to Learn](#concepts-to-learn-1)
+  - [Practical Steps](#practical-steps-1)
+    - [Add Static File Support in Nginx](#1-add-static-file-support-in-nginx)
+    - [Add Gzip Configuration](#2-add-gzip-configuration)
+    - [Update Your Dockerfile.dev](#update-your-dockerfiledev)
+    - [Add Static Files](#3-add-static-files)
+    - [Folder Structure](#4-folder-structure-1)
+    - [Run and Test the Setup](#5-run-and-test-the-setup)
+    - [Test Your Setup](#6-test-your-setup-1)
 
 ---
 
@@ -268,7 +278,7 @@ Think of Docker Compose as a **kitchen manager** that coordinates multiple stati
   - Look for `index.html` as the default file when users visit the root of your site.
   - Include a fallback to a `404.html` file for missing resources.
 
-```default-dev.conf
+```nginx
 server {
     # The server listens for incoming HTTP requests on port 80 (default for HTTP).
     listen 80;
@@ -297,7 +307,7 @@ server {
 
 For building nginx image with the appropriate configuration, inside Dockerfile.dev file add:
 
-```Dockerfile.dev
+```docker
 # This Dockerfile sets up an Nginx container for serving static files in a development environment.
 # - It uses a lightweight Alpine-based Nginx image.
 # - Copies a custom Nginx configuration to the container.
@@ -325,7 +335,7 @@ RUN mkdir -p /var/www/app/static && \
   - Map the `nginx` folder for custom configurations.
   - Expose port `80` for local access.
 
-```docker-compose-dev.yml
+```docker
 # This Docker Compose file defines a service for running an Nginx container in development mode.
 # It builds a custom Docker image for Nginx using a Dockerfile located in the "nginx" folder.
 # The "site" folder on the host is mapped into the container to serve static website files.
@@ -382,3 +392,178 @@ After completing this step, verify the following:
 
 - Does visiting [http://localhost](http://localhost) display the content of your `index.html` file?
 - Are changes to the `index.html` file reflected in the browser after refreshing?
+
+---
+
+# **Step 02: Serving Static Files and Improving Performance with Gzip**
+
+## **Goal of This Step**
+
+In this step, you will:
+
+1. Update your Nginx configuration to serve static files (e.g., CSS, JS, images) from a dedicated `static` folder.
+2. Optimize your website's performance by enabling Gzip compression.
+3. Test the setup by adding CSS and JavaScript files to the `static` folder and verifying that they are served correctly.
+
+By the end of this step, you’ll have a more functional setup capable of serving all your static assets efficiently with improved performance.
+
+---
+
+## **Concepts to Learn**
+
+### **1. Static File Serving**
+
+Nginx can efficiently serve static files like CSS, JS, and images directly from a specific folder. This avoids unnecessary processing and delivers these files to the user quickly.
+
+- **Practical Example**:
+  - Websites like **Amazon** and **Netflix** use Nginx to serve static assets (e.g., stylesheets, images, and JavaScript) from dedicated directories.
+- **How It Works Here**:
+  - We'll configure Nginx to map `/static/` URLs to the `static` folder inside your project directory (`/var/www/app/static`).
+
+### **2. Gzip Compression**
+
+Gzip reduces the size of text-based files (like HTML, CSS, and JavaScript) before sending them to the browser, resulting in faster load times.
+
+- **Practical Example**:
+  - Gzip is widely used by high-traffic sites to save bandwidth and improve performance.
+- **How It Works Here**:
+  - We'll enable Gzip in Nginx and configure it to compress supported file types like `text/css`, `application/javascript`, and `text/html`.
+
+---
+
+## **Practical Steps**
+
+### **1. Add Static File Support in Nginx**
+
+1. Update your `nginx/default-dev.conf` file to include the following blocks:
+
+   ```nginx
+   location /static/ {
+        # Maps requests for /static/ to the static folder in your project.
+        alias /var/www/app/static;
+    }
+
+    location ~* \.(gif|jpe?g|png|svg)$ {
+        # Caches these file types for as long as possible.
+        expires max;
+        # Ensures long-term caching.
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+
+    location ~* \.(css|js|json)$ {
+        # Ensures proper caching behavior.
+        add_header Cache-Control "no-cache, must-revalidate";
+    }
+   ```
+
+   ### **2. Add Gzip Configuration**
+
+- Create a new file in the `nginx` folder named `gzip.conf`.
+- Add the following lines to enable Gzip:
+
+```gzip
+gzip on;
+gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+gzip_vary on;
+gzip_proxied any;
+# Compression level: balance between performance and CPU usage.
+gzip_comp_level 6;
+gzip_buffers 16 8k;
+gzip_http_version 1.1;
+# Only compress files larger than 256 bytes.
+gzip_min_length 256;
+```
+
+### **Update Your Dockerfile.dev to Include the Gzip Configuration**
+
+Add the following line to your `Dockerfile.dev`:
+
+```docker
+# Copies the Gzip configuration into the container.
+COPY ./gzip.conf /etc/nginx/conf.d/gzip.conf
+```
+
+### **3. Add Static Files**
+
+1. Inside the `site` folder, create a `static` directory.
+
+2. Inside the static folder, create two subfolders css, js
+
+3. Add some files to test:
+
+   - Inside css folder, create a file named `styles.css` with the following content:
+     ```css
+     body {
+       background-color: blue;
+       font-family: Arial, sans-serif;
+       color: wheat;
+     }
+     ```
+   - Inside js folder, create a file named `main.js` with the following content:
+     ```javascript
+     console.log("Hello, world!");
+     ```
+
+4. Link these files in your `index.html`:
+
+   ```html
+   <!DOCTYPE html>
+   <html lang="en">
+     <head>
+       <meta charset="UTF-8" />
+       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+       <title>Hello World!</title>
+       <link rel="stylesheet" href="/static/css/styles.css" />
+     </head>
+     <body>
+       Hello World!!!
+
+       <script src="/static/js/main.js"></script>
+     </body>
+   </html>
+   ```
+
+### **4. Folder Structure**
+
+After completing this step, your folder structure should look like this:
+
+```plaintext
+.
+├── nginx/
+│   ├── default-dev.conf   # Updated Nginx configuration for static files
+│   ├── gzip.conf          # Gzip compression configuration
+│   └── Dockerfile.dev     # Dockerfile for the Nginx service
+├── site/
+│   ├── index.html         # Updated HTML linking static files
+│   └── static/
+│       ├── css/
+│       │   └── styles.css # Test CSS file
+│       ├── js/
+│       │   └── main.js    # Test JavaScript file
+├── docker-compose-dev.yml # Docker Compose file for development
+```
+
+### **5. Run and Test the Setup**
+
+1. Restart your Docker containers to apply the changes:
+   ```bash
+   docker-compose -f docker-compose-dev.yml up --build -d
+   ```
+
+Open your browser and visit:
+
+- [http://localhost](http://localhost): You should see your updated `index.html` with the applied CSS styles.
+- Check the browser's developer tools (**Console tab**) to confirm that the JavaScript file is executed.
+
+Verify Gzip compression:
+
+- Use an online tool like [Gzip Checker](https://www.giftofspeed.com/gzip-test/) or your browser's **Network tab** to confirm that files like `styles.css` and `scripts.js` are compressed.
+
+### **6. Test Your Setup**
+
+- Does visiting [http://localhost](http://localhost) show the updated page with CSS and JavaScript applied?
+- Are static files served from the `/static/` folder?
+- Is Gzip compression applied to your text-based files (CSS, JS, HTML)?
+
+By completing this step, you’ve set up a static file server with Nginx and optimized it with Gzip compression for faster delivery. This serves as the foundation for efficient static asset management in your CI/CD pipeline.
