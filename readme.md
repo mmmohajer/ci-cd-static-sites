@@ -51,10 +51,12 @@ For more information, visit the repository at: [https://github.com/mmmohajer/ci-
     - [Create the Nginx Configuration for Production](#1-create-the-nginx-configuration-for-production)
     - [Create the Dockerfile for Production](#2-create-the-dockerfile-for-production)
     - [Create the Docker Compose File for Production](#3-create-the-docker-compose-file-for-production)
-    - [Push the Changes to GitHub](#4-push-the-changes-to-github)
-    - [Deploy the App on the Server](#5-deploy-the-app-on-the-server)
-    - [Verify Your App](#6-verify-your-app)
-    - [Folder and File Structure](#7-folder-and-file-structure-1)
+    - [Create the Deployment Script](#4-create-the-deployment-script)
+    - [Push the Changes to GitHub](#5-push-the-changes-to-github)
+    - [Deploy the App on the Server](#6-deploy-the-app-on-the-server)
+    - [Verify Your App](#7-verify-your-app)
+    - [Automate Certificate Renewal](#8-automate-nginx-reload-for-certificate-renewal)
+    - [Folder and File Structure](#9-folder-and-file-structure)
 
 ---
 
@@ -1245,7 +1247,7 @@ docker-compose -f docker-compose-prod-ssl.yml up --build -d && docker volume pru
      ```
    - Pull the latest changes from the GitHub repository:
      ```bash
-     git pull origin main
+     git pull origin master
      ```
 
 2. **Run the Deployment Script**:
@@ -1274,9 +1276,45 @@ docker-compose -f docker-compose-prod-ssl.yml up --build -d && docker volume pru
 
 ---
 
+### **8. Automate Nginx Reload for Certificate Renewal**
+
+When Certbot renews SSL certificates, Nginx needs to be reloaded to apply the updated certificates. To automate this process, you can add a cron job to reload Nginx every 24 hours.
+
+1. **Open the Crontab**:
+
+   ```bash
+   crontab -e
+
+   ```
+
+2. Add the Following Cron Job:
+
+```bash
+0 0 * * * docker exec app-nginx-1 nginx -s reload
+```
+
+- This command will reload Nginx at midnight every day.
+- Replace app-nginx-1 with the name of your Nginx container if it's different.
+
+3. Save and Exit:
+
+- Save the changes to your crontab file and exit the editor.
+
+4. Verify the Cron Job:
+
+- To check if the cron job has been added, use:
+
+```bash
+crontab -l
+```
+
+- This will list all the active cron jobs for the current user.
+
+With this cron job, Nginx will automatically reload every 24 hours, ensuring that renewed SSL certificates are applied without manual intervention.
+
 ---
 
-### **8. Folder and File Structure**
+### **9. Folder and File Structure**
 
 At the end of this step, your project folder structure should look like this:
 
