@@ -56,7 +56,7 @@ If you’re still unable to resolve an issue after self-search:
 
 ### **5. Use the Branches for Guidance**
 
-- Each step has a corresponding branch named `step-{STEP_NUMBER}` (e.g., `step-1`, `step-2`):
+- Each step has a corresponding branch named `step-{STEP_NUMBER}` (e.g., `step-01`, `step-02`):
   - Switch to the relevant branch to see how the step should be structured:
     ```bash
     git checkout step-{STEP_NUMBER}
