@@ -32,6 +32,19 @@ For more information, visit the repository at: [https://github.com/mmmohajer/ci-
     - [Folder Structure](#4-folder-structure-1)
     - [Run and Test the Setup](#5-run-and-test-the-setup)
     - [Test Your Setup](#6-test-your-setup-1)
+- [Step 03: Setting Up the Production Environment](#step-03-setting-up-the-production-environment)
+  - [Goal of This Step](#goal-of-this-step)
+  - [Prerequisites](#prerequisites)
+  - [Steps to Configure the Production Environment](#steps-to-configure-the-production-environment)
+    - [Create the Nginx Configuration for SSL Creation](#1-create-the-nginx-configuration-for-ssl-creation)
+    - [Create a Dockerfile for SSL Setup](#2-create-a-dockerfile-for-ssl-setup)
+    - [Create the Docker Compose File](#3-create-the-docker-compose-file)
+    - [Create the init-letsencrypt.sample.sh Script](#4-create-the-init-letsencryptsamplesh-script)
+    - [SSH into the Server](#5-ssh-into-the-server)
+    - [Set Up Git Configuration](#6-set-up-git-configuration)
+    - [Deploy the App and Create SSL](#7-deploy-the-app-and-create-ssl)
+    - [Verify SSL Creation](#8-verify-ssl-creation)
+    - [Folder and File Structure](#9-folder-and-file-structure)
 
 ---
 
@@ -567,3 +580,418 @@ Verify Gzip compression:
 - Is Gzip compression applied to your text-based files (CSS, JS, HTML)?
 
 By completing this step, you’ve set up a static file server with Nginx and optimized it with Gzip compression for faster delivery. This serves as the foundation for efficient static asset management in your CI/CD pipeline.
+
+---
+
+# **Step 03: Setting Up the Production Environment**
+
+## **Goal of This Step**
+
+In this step, we will:
+
+1. Set up a production-ready environment with a real domain.
+2. Configure a Linux Ubuntu server to host the application.
+3. Generate SSL certificates for the domain using Certbot to enable HTTPS.
+4. Build and deploy a minimal Nginx-based setup for SSL creation.
+
+By the end of this step, you'll have the foundation ready to run your app on a production server with a valid SSL certificate.
+
+---
+
+## **Prerequisites**
+
+Before proceeding:
+
+1. **Purchase a Domain**:
+   - Use providers like **GoDaddy** or others to buy a domain.
+2. **Set Up a Linux Server**:
+   - Purchase a Linux server (preferably Ubuntu) from a provider like **DigitalOcean**.
+   - DigitalOcean is recommended for its simplicity, features, and pricing.
+3. **DNS Configuration**:
+   - Create an **A record** in your domain's DNS settings pointing to your server's public IP address.
+
+---
+
+## **Steps to Configure the Production Environment**
+
+### **1. Create the Nginx Configuration for SSL Creation**
+
+1. In the `nginx` folder, create a file named `default-create-ssl.conf` with the following content:
+
+   ```nginx
+   server {
+    # Configures the server to listen on port 80 for HTTP requests.
+    listen 80;
+
+    # Replace `APP_URL` with your actual domain name (e.g., example.com).
+    # This specifies the domain that this Nginx configuration will serve.
+    server_name APP_URL www.APP_URL;
+
+    # Disables the Nginx version number in error pages and headers for security.
+    server_tokens off;
+
+    location /.well-known/acme-challenge/ {
+        # Allows unrestricted access to the `.well-known/acme-challenge` directory,
+        # which is required for Certbot to verify domain ownership.
+        allow all;
+
+        # Specifies the directory where Certbot will store temporary challenge files
+        # used to verify the domain when generating an SSL certificate.
+        root /var/www/certbot;
+    }
+
+    location / {
+        # Serves static HTML files from the `/usr/share/nginx/html` directory.
+        root /usr/share/nginx/html;
+
+        # Specifies the default files (index.html or index.htm) to serve
+        # when a user visits the root URL.
+        index index.html index.htm;
+
+        # Attempts to serve the requested file (`$uri`).
+        # If the file is not found, it falls back to `/index.html`.
+        try_files $uri $uri/ /index.html;
+    }
+   }
+   ```
+
+### **2. Create a Dockerfile for SSL Setup**
+
+1. Navigate to the `nginx` folder in your project directory.
+
+2. Create a file named `Dockerfile.create-ssl` and add the following content:
+
+   ```dockerfile
+   # Use the lightweight Alpine-based Nginx image as the base image.
+   FROM nginx:1.20.2-alpine
+
+   # Copy the minimal Nginx configuration for SSL creation into the container.
+   COPY ./default-create-ssl.conf /etc/nginx/conf.d/default.conf
+   ```
+
+### **3. Create the Docker Compose File**
+
+1. Navigate to the root folder of your project.
+
+2. Create a file named `docker-compose-create-ssl.yml` and add the following content:
+
+   ```yaml
+   services:
+     nginx:
+       restart: always
+       # Ensures the Nginx container restarts automatically if it stops or crashes.
+
+       build:
+         context: ./nginx
+         # Specifies the build context (the directory containing the Dockerfile).
+         dockerfile: Dockerfile.create-ssl
+         # Defines the Dockerfile to use for building the Nginx image.
+
+       ports:
+         - "80:80"
+         # Maps port 80 on the server to port 80 in the container, allowing HTTP traffic.
+
+       volumes:
+         - ./site:/usr/share/nginx/html
+         # Maps the local `site` folder to `/usr/share/nginx/html` in the container.
+         # This folder contains the static files (e.g., index.html) for the Nginx server.
+
+         - ./nginx/certbot/www:/var/www/certbot
+         # Maps the local folder for Certbot's `.well-known` directory to `/var/www/certbot` in the container.
+         # Certbot uses this directory to store temporary challenge files for domain verification.
+
+         - ./nginx/certbot/conf:/etc/letsencrypt
+         # Maps the local folder for Certbot's configuration and SSL certificates to `/etc/letsencrypt` in the container.
+         # This is where Certbot stores the generated SSL certificates.
+
+     certbot:
+       image: certbot/certbot:latest
+       # Uses the latest Certbot image from Docker Hub to manage SSL certificates.
+
+       container_name: certbot
+       # Sets the name of the Certbot container for easier identification.
+
+       volumes:
+         - ./nginx/certbot/www:/var/www/certbot
+         # Shares the `.well-known` folder with the Certbot container for domain verification.
+
+         - ./nginx/certbot/conf:/etc/letsencrypt
+         # Shares the configuration and SSL certificate folder with the Certbot container.
+
+       entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 6h & wait $${!}; certbot renew; done'"
+       # Defines the custom entrypoint for the Certbot container:
+       # - Keeps the container running in a loop.
+       # - Attempts to renew SSL certificates every 6 hours.
+       # - Ensures the process exits gracefully if the container stops.
+   ```
+
+### **4. Create the `init-letsencrypt.sample.sh` Script**
+
+1. In the root folder of your project, create a file named `init-letsencrypt.sample.sh`.
+
+2. Make the script executable:
+   ```bash
+   chmod +x init-letsencrypt.sh
+   ```
+3. Add the following code to the file:
+
+```bash
+#!/bin/bash
+
+if ! [ -x "$(command -v docker-compose)" ]; then
+echo 'Error: docker-compose is not installed.' >&2
+exit 1
+fi
+
+# Replace APP_URL with your actual domain (e.g., example.com)
+domains=(APP_URL www.APP_URL)
+
+rsa_key_size=4096
+data_path="./nginx/certbot"
+
+# Update EMAIL for Let's Encrypt notifications
+email="EMAIL"
+
+staging=0
+
+
+if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/ssl-dhparams.pem" ]; then
+echo "### Downloading recommended TLS parameters ..."
+mkdir -p "$data_path/conf"
+curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf > "$data_path/conf/options-ssl-nginx.conf"
+curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem > "$data_path/conf/ssl-dhparams.pem"
+echo
+fi
+
+echo "### Creating dummy certificate for $domains ..."
+path="/etc/letsencrypt/live/$domains"
+mkdir -p "$data_path/conf/live/$domains"
+docker-compose -f ./docker-compose-create-ssl.yml run --rm --entrypoint "\
+openssl req -x509 -nodes -newkey rsa:$rsa_key_size -days 1\
+  -keyout '$path/privkey.pem' \
+  -out '$path/fullchain.pem' \
+  -subj '/CN=localhost'" certbot
+echo
+
+
+echo "### Starting nginx ..."
+docker-compose -f ./docker-compose-create-ssl.yml up --force-recreate -d nginx
+echo
+
+echo "### Deleting dummy certificate for $domains ..."
+docker-compose -f ./docker-compose-create-ssl.yml run --rm --entrypoint "\
+rm -Rf /etc/letsencrypt/live/$domains && \
+rm -Rf /etc/letsencrypt/archive/$domains && \
+rm -Rf /etc/letsencrypt/renewal/$domains.conf" certbot
+echo
+
+
+echo "### Requesting Let's Encrypt certificate for $domains ..."
+#Join $domains to -d args
+domain_args=""
+for domain in "${domains[@]}"; do
+domain_args="$domain_args -d $domain"
+done
+
+# Select appropriate email arg
+case "$email" in
+"") email_arg="--register-unsafely-without-email" ;;
+*) email_arg="--email $email" ;;
+esac
+
+# Enable staging mode if needed
+if [ $staging != "0" ]; then staging_arg="--staging"; fi
+
+docker-compose -f ./docker-compose-create-ssl.yml run --rm --entrypoint "\
+certbot certonly --webroot -w /var/www/certbot \
+  $staging_arg \
+  $email_arg \
+  $domain_args \
+  --rsa-key-size $rsa_key_size \
+  --agree-tos \
+  --force-renewal" certbot
+echo
+
+echo "### Reloading nginx ..."
+docker-compose -f ./docker-compose-create-ssl.yml exec nginx nginx -s reload
+```
+
+### **5. SSH into the Server**
+
+1. Use the following command to log in to your server:
+   ```bash
+   ssh root@IP_ADDRESS
+   ```
+
+Replace `IP_ADDRESS` with the public IP address of your server.  
+This command connects you to your server as the root user.
+
+Once logged in:
+
+### **6. Set Up Git Configuration**
+
+**Configure your Git to pull from your private repository using SSH:**
+
+1. **Generate an SSH key on your server**:
+   Go to .ssh folder on the serve:
+
+```bash
+cd .ssh
+```
+
+```bash
+ssh-keygen -t rsa -b 4096 -C "OPTINAL COMMENT"
+```
+
+This command creates a 4096-bit RSA key pair with a comment containing your email address.
+
+2. **Copy the public key**:
+
+```bash
+cat ~/.ssh/id_rsa.pub
+```
+
+Use this command to display the public portion of your SSH key.
+
+3. **Add the key to your GitHub account**:
+
+- Go to **GitHub > Settings > SSH and GPG keys**.
+- Click **New SSH Key**, paste the public key, and save it.
+
+**Test the SSH connection**:
+
+```bash
+ssh -T git@github.com
+```
+
+If successful, you should see a message like:
+
+```rust
+Hi username! You've successfully authenticated.
+```
+
+This confirms that your server can securely connect to GitHub via SSH.
+
+### **7. Deploy the App and Create SSL**
+
+1. **Add `init-letsencrypt.sh` to your `.gitignore` file**:
+
+   - Open the `.gitignore` file in the root folder of your project in your local system.
+   - Add the following line:
+     ```plaintext
+     init-letsencrypt.sh
+     ```
+   - This ensures that the sensitive script file is not pushed to the GitHub repository.
+
+2. **Push Your Changes to GitHub**:
+
+   - Commit and push the updates:
+     ```bash
+     git add .
+     git commit -m "Add SSL setup and ignore init-letsencrypt.sh"
+     git push origin main
+     ```
+
+3. **Pull the Changes on the Server**:
+
+   - First, ensure **Git** is installed on the server. If it's not installed, use the following command:
+
+     ```bash
+     apt update
+     apt install -y git
+     ```
+
+   - Navigate to the `/var/www/app` directory on your server:
+
+     ```bash
+     cd /var/www/app
+     ```
+
+   - Add your GitHub repository as the `origin` using SSH:
+
+     ```bash
+     git init
+     git remote add origin git@github.com:yourusername/your-repo-name.git
+     ```
+
+     - Replace `yourusername/your-repo-name` with the actual username and repository name of your GitHub project.
+
+   - Pull the latest changes from your GitHub repository:
+     ```bash
+     # master can be replaced with the actual branch name in your repository
+     git pull origin master
+     ```
+
+4. **Copy `init-letsencrypt.sh.sample` to `init-letsencrypt.sh`**:
+
+   - Create the working script from the sample file and make it executable:
+     ```bash
+     cp init-letsencrypt.sample.sh init-letsencrypt.sh
+     chmod +x init-letsencrypt.sh
+     ```
+     - Update `APP_URL` and `EMAIL` in the copied file.
+
+5. **Install Docker and Docker Compose on the Server**:
+
+   - If Docker and Docker Compose are not already installed, use the following commands to install them:
+
+     **Install Docker**:
+
+     ```bash
+     apt update
+     apt install -y docker.io
+     systemctl start docker
+     systemctl enable docker
+     ```
+
+     **Install Docker Compose**:
+
+     ```bash
+     apt install -y curl
+     curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+     chmod +x /usr/local/bin/docker-compose
+     ```
+
+   - Verify that Docker and Docker Compose are installed correctly:
+     ```bash
+     docker --version
+     docker-compose --version
+     ```
+
+6. **Run the `init-letsencrypt.sh` Script**:
+
+   - Execute the script to create and configure SSL certificates:
+     ```bash
+     ./init-letsencrypt.sh
+     ```
+
+### **8. Verify SSL Creation**
+
+Once the script completes successfully, you will see an appropriate success message in the terminal, and you are ready to move to the next step.
+
+### **8. Folder and File Structure**
+
+At the end of this step, your project should have the following folder and file structure:
+
+```plaintext
+.
+├── nginx/                          # Contains Nginx configurations and Dockerfiles
+│   ├── default-create-ssl.conf     # Minimal Nginx configuration for creating SSL certificates
+│   ├── default-dev.conf            # Nginx configuration for the development environment
+│   ├── gzip.conf                   # Gzip compression configuration
+│   ├── Dockerfile.create-ssl       # Dockerfile for creating SSL certificates
+│   └── Dockerfile.dev              # Dockerfile for the Nginx service in development
+├── site/                           # Contains website files
+│   ├── index.html                  # Main HTML file
+│   └── static/                     # Folder for static assets
+│       ├── css/
+│       │   └── styles.css          # Test CSS file
+│       ├── js/
+│       │   └── main.js             # Test JavaScript file
+│       └── images/                 # (Optional) Folder for image files
+├── init-letsencrypt.sh.sample      # Sample SSL creation script
+├── init-letsencrypt.sh             # Actual SSL creation script (added by the user)
+├── .gitignore                      # Git ignore file
+├── docker-compose-create-ssl.yml   # Docker Compose file for creating SSL certificates
+├── docker-compose-dev.yml          # Docker Compose file for development setup
+```

@@ -1,0 +1,5 @@
+# Use the lightweight Alpine-based Nginx image as the base image.
+FROM nginx:1.20.2-alpine
+
+# Copy the minimal Nginx configuration for SSL creation into the container.
+COPY ./default-create-ssl.conf /etc/nginx/conf.d/default.conf

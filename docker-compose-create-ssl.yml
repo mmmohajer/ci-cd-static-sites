@@ -1,0 +1,48 @@
+services:
+  nginx:
+    # Ensures the Nginx container restarts automatically if it stops or crashes.
+    restart: always
+
+    build:
+      # Specifies the build context (the directory containing the Dockerfile).
+      context: ./nginx
+
+      # Defines the Dockerfile to use for building the Nginx image.
+      dockerfile: Dockerfile.create-ssl
+
+    ports:
+      # Maps port 80 on the server to port 80 in the container, allowing HTTP traffic.
+      - "80:80"
+
+    volumes:
+      # Maps the local `site` folder to `/usr/share/nginx/html` in the container.
+      # This folder contains the static files (e.g., index.html) for the Nginx server.
+      - ./site:/usr/share/nginx/html
+
+      # Maps the local folder for Certbot's `.well-known` directory to `/var/www/certbot` in the container.
+      # Certbot uses this directory to store temporary challenge files for domain verification.
+      - ./nginx/certbot/www:/var/www/certbot
+
+      # Maps the local folder for Certbot's configuration and SSL certificates to `/etc/letsencrypt` in the container.
+      # This is where Certbot stores the generated SSL certificates.
+      - ./nginx/certbot/conf:/etc/letsencrypt
+
+  certbot:
+    # Uses the latest Certbot image from Docker Hub to manage SSL certificates.
+    image: certbot/certbot:latest
+
+    # Sets the name of the Certbot container for easier identification.
+    container_name: certbot
+
+    # Defines the custom entrypoint for the Certbot container:
+    # - Keeps the container running in a loop.
+    # - Attempts to renew SSL certificates every 6 hours.
+    # - Ensures the process exits gracefully if the container stops.
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 6h & wait $${!}; certbot renew; done'"
+
+    volumes:
+      # Shares the `.well-known` folder with the Certbot container for domain verification.
+      - ./nginx/certbot/www:/var/www/certbot
+
+      # Shares the configuration and SSL certificate folder with the Certbot container.
+      - ./nginx/certbot/conf:/etc/letsencrypt
