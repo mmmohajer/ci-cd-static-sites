@@ -1,0 +1,33 @@
+services:
+  nginx:
+    # Restart the container automatically in case of failure
+    restart: always
+
+    # Build the Nginx image using the production Dockerfile
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.prod-ssl
+
+    # Map ports 80 (HTTP) and 443 (HTTPS) from the container to the server
+    ports:
+      - "80:80"
+      - "443:443"
+
+    # Mount necessary volumes
+    volumes:
+      - ./site:/var/www/app # Static files and HTML
+      - ./nginx/certbot/www:/var/www/certbot # Let's Encrypt challenge directory
+      - ./nginx/certbot/conf:/etc/letsencrypt # SSL certificates
+
+  certbot:
+    # Use the Certbot Docker image for SSL certificate management
+    image: certbot/certbot:latest
+    container_name: certbot
+
+    # Share volumes for SSL certificates and challenges
+    volumes:
+      - ./nginx/certbot/www:/var/www/certbot
+      - ./nginx/certbot/conf:/etc/letsencrypt
+
+    # Runs Certbot in a loop to renew SSL certificates periodically
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 6h & wait $${!}; certbot renew; done'"
