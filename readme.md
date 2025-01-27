@@ -268,6 +268,53 @@ Think of Docker Compose as a **kitchen manager** that coordinates multiple stati
   - Look for `index.html` as the default file when users visit the root of your site.
   - Include a fallback to a `404.html` file for missing resources.
 
+```default-dev.conf
+server {
+    # The server listens for incoming HTTP requests on port 80 (default for HTTP).
+    listen 80;
+
+    # Defines the root directory where the website files are stored and served from.
+    root /var/www/app;
+
+    # Specifies the default file to serve when a user visits the root URL.
+    index index.html;
+
+    # Defines a custom 404 error page to display when a file is not found.
+    error_page 404 /404.html;
+
+
+    # Handles all other requests to the root or subpaths.
+    location / {
+        # Attempts to serve the requested file or path in this order:
+        # 1. An exact file match (e.g., /about.html).
+        # 2. A file with .html appended (e.g., /about -> /about.html).
+        # 3. A directory with the name (e.g., /about/).
+        # 4. If none of the above exist, serves the custom 404 error page.
+        try_files $uri $uri.html $uri/ /404.html;
+    }
+}
+```
+
+For building nginx image with the appropriate configuration, inside Dockerfile.dev file add:
+
+```Dockerfile.dev
+# This Dockerfile sets up an Nginx container for serving static files in a development environment.
+# - It uses a lightweight Alpine-based Nginx image.
+# - Copies a custom Nginx configuration to the container.
+# - Prepares a directory for static files with appropriate permissions.
+
+# Use a lightweight Nginx image based on Alpine Linux for efficiency.
+FROM nginx:1.20.2-alpine
+
+# Copy the custom Nginx configuration file # to the container's default configuration location.
+COPY ./default-dev.conf /etc/nginx/conf.d/default.conf
+
+# Create a directory for static files within the container.
+# Set permissions to allow read, write, and execute for the owner, and read/execute for others.
+RUN mkdir -p /var/www/app/static && \
+    chmod 755 /var/www/app/static
+```
+
 ---
 
 #### **3. Write the Docker Compose File**
@@ -277,6 +324,24 @@ Think of Docker Compose as a **kitchen manager** that coordinates multiple stati
   - Map your local `site` folder to `/var/www/app` inside the container.
   - Map the `nginx` folder for custom configurations.
   - Expose port `80` for local access.
+
+```docker-compose-dev.yml
+# This Docker Compose file defines a service for running an Nginx container in development mode.
+# It builds a custom Docker image for Nginx using a Dockerfile located in the "nginx" folder.
+# The "site" folder on the host is mapped into the container to serve static website files.
+# Port 80 on the host is mapped to port 80 in the container, allowing access via http://localhost.
+
+services:
+  nginx: # Defines a service named "nginx"
+    restart: always # Ensures the container restarts automatically if it stops or crashes
+    build: # Configuration for building the Docker image
+      context: ./nginx # Specifies the build context (folder containing Dockerfile and related files)
+      dockerfile: Dockerfile.dev # Specifies the Dockerfile to use for building the image
+    ports:
+      - "80:80" # Maps port 80 on the host to port 80 in the container (access via http://localhost)
+    volumes:
+      - ./site:/var/www/app # Maps the "site" folder on the host to "/var/www/app" inside the container
+```
 
 ---
 
