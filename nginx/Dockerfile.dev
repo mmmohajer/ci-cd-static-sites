@@ -1,0 +1,15 @@
+# This Dockerfile sets up an Nginx container for serving static files in a development environment.
+# - It uses a lightweight Alpine-based Nginx image.
+# - Copies a custom Nginx configuration to the container.
+# - Prepares a directory for static files with appropriate permissions.
+
+# Use a lightweight Nginx image based on Alpine Linux for efficiency.
+FROM nginx:1.20.2-alpine
+
+# Copy the custom Nginx configuration file # to the container's default configuration location.
+COPY ./default-dev.conf /etc/nginx/conf.d/default.conf
+
+# Create a directory for static files within the container.
+# Set permissions to allow read, write, and execute for the owner, and read/execute for others.
+RUN mkdir -p /var/www/app/static && \  
+    chmod 755 /var/www/app/static

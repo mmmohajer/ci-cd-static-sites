@@ -1,0 +1,15 @@
+# This Docker Compose file defines a service for running an Nginx container in development mode.
+# It builds a custom Docker image for Nginx using a Dockerfile located in the "nginx" folder.
+# The "site" folder on the host is mapped into the container to serve static website files.
+# Port 80 on the host is mapped to port 80 in the container, allowing access via http://localhost.
+
+services:
+  nginx: # Defines a service named "nginx"
+    restart: always # Ensures the container restarts automatically if it stops or crashes
+    build: # Configuration for building the Docker image
+      context: ./nginx # Specifies the build context (folder containing Dockerfile and related files)
+      dockerfile: Dockerfile.dev # Specifies the Dockerfile to use for building the image
+    ports:
+      - "80:80" # Maps port 80 on the host to port 80 in the container (access via http://localhost)
+    volumes:
+      - ./site:/var/www/app # Maps the "site" folder on the host to "/var/www/app" inside the container
