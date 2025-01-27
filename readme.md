@@ -924,9 +924,10 @@ This confirms that your server can securely connect to GitHub via SSH.
 
 4. **Copy `init-letsencrypt.sh.sample` to `init-letsencrypt.sh`**:
 
-   - Create the working script from the sample file:
+   - Create the working script from the sample file and make it executable:
      ```bash
-     cp init-letsencrypt.sh.sample init-letsencrypt.sh
+     cp init-letsencrypt.sample.sh init-letsencrypt.sh
+     chmod +x init-letsencrypt.sh
      ```
      - Update `APP_URL` and `EMAIL` in the copied file.
 
