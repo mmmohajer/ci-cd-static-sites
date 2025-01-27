@@ -826,24 +826,24 @@ docker-compose -f ./docker-compose-create-ssl.yml exec nginx nginx -s reload
 Replace `IP_ADDRESS` with the public IP address of your server.  
 This command connects you to your server as the root user.
 
-Once logged in, create the required folder structure:
-
-```bash
-mkdir -p /var/www/app
-cd /var/www/app
-```
+Once logged in:
 
 ### **6. Set Up Git Configuration**
 
 **Configure your Git to pull from your private repository using SSH:**
 
 1. **Generate an SSH key on your server**:
+   Go to .ssh folder on the serve:
 
-   ```bash
-   ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
-   ```
+```bash
+cd .ssh
+```
 
-   This command creates a 4096-bit RSA key pair with a comment containing your email address.
+```bash
+ssh-keygen -t rsa -b 4096 -C "OPTINAL COMMENT"
+```
+
+This command creates a 4096-bit RSA key pair with a comment containing your email address.
 
 2. **Copy the public key**:
 
@@ -872,15 +872,6 @@ Hi username! You've successfully authenticated.
 
 This confirms that your server can securely connect to GitHub via SSH.
 
-4. **Clone your repository to the server**:
-
-```bash
-git clone git@github.com:yourusername/your-repo-name.git /var/www/app
-```
-
-Replace `yourusername/your-repo-name` with the actual path to your repository.  
-The repository content will be cloned into the `/var/www/app` directory on your server.
-
 ### **7. Deploy the App and Create SSL**
 
 1. **Add `init-letsencrypt.sh` to your `.gitignore` file**:
@@ -901,13 +892,7 @@ The repository content will be cloned into the `/var/www/app` directory on your 
      git push origin main
      ```
 
-3. **Navigate to the `/var/www/app` directory on the server**:
-
-   ```bash
-   cd /var/www/app
-   ```
-
-4. **Pull the Changes on the Server**:
+3. **Pull the Changes on the Server**:
 
    - First, ensure **Git** is installed on the server. If it's not installed, use the following command:
 
@@ -925,6 +910,7 @@ The repository content will be cloned into the `/var/www/app` directory on your 
    - Add your GitHub repository as the `origin` using SSH:
 
      ```bash
+     git init
      git remote add origin git@github.com:yourusername/your-repo-name.git
      ```
 
@@ -932,10 +918,11 @@ The repository content will be cloned into the `/var/www/app` directory on your 
 
    - Pull the latest changes from your GitHub repository:
      ```bash
-     git pull origin main
+     # master can be replaced with the actual branch name in your repository
+     git pull origin master
      ```
 
-5. **Copy `init-letsencrypt.sh.sample` to `init-letsencrypt.sh`**:
+4. **Copy `init-letsencrypt.sh.sample` to `init-letsencrypt.sh`**:
 
    - Create the working script from the sample file:
      ```bash
@@ -943,7 +930,7 @@ The repository content will be cloned into the `/var/www/app` directory on your 
      ```
      - Update `APP_URL` and `EMAIL` in the copied file.
 
-6. **Install Docker and Docker Compose on the Server**:
+5. **Install Docker and Docker Compose on the Server**:
 
    - If Docker and Docker Compose are not already installed, use the following commands to install them:
 
@@ -971,7 +958,7 @@ The repository content will be cloned into the `/var/www/app` directory on your 
      docker-compose --version
      ```
 
-7. **Run the `init-letsencrypt.sh` Script**:
+6. **Run the `init-letsencrypt.sh` Script**:
 
    - Execute the script to create and configure SSL certificates:
      ```bash
